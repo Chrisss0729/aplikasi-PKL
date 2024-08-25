@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Absensi</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places"></script>
+    <style>
+      .info {
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Absensi</h1>
+    <button onclick="absen('masuk')">Absen Masuk</button>
+    <button onclick="absen('pulang')">Absen Pulang</button>
+    <button onclick="viewInfo()">Lihat Info Absensi</button>
+
+    <div id="info" class="info"></div>
+
+    <script>
+      function absen(status) {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            function (position) {
+              var lat = position.coords.latitude;
+              var lng = position.coords.longitude;
+              var user_id = 1; // Ganti dengan ID pengguna yang sesuai
+
+              var xhr = new XMLHttpRequest();
+              xhr.open("POST", "absen.php", true);
+              xhr.setRequestHeader(
+                "Content-Type",
+                "application/x-www-form-urlencoded"
+              );
+              xhr.onreadystatechange = function () {
+                if (xhr.readyState == 4 && xhr.status == 200) {
+                  var response = JSON.parse(xhr.responseText);
+                  document.getElementById("info").innerHTML = response.message;
+                  if (response.status === "success") {
+                    fetchStats();
+                  }
+                }
+              };
+              xhr.send(
+                "user_id=" +
+                  user_id +
+                  "&lat=" +
+                  lat +
+                  "&lng=" +
+                  lng +
+                  "&status=" +
+                  status
+              );
+            },
+            function (error) {
+              alert("Gagal mendapatkan lokasi.");
+            }
+          );
+        } else {
+          alert("Geolocation tidak didukung oleh browser ini.");
+        }
+      }
+
+      function fetchStats() {
+        var user_id = 1; // Ganti dengan ID pengguna yang sesuai
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", "stats.php?user_id=" + user_id, true);
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState == 4 && xhr.status == 200) {
+            var response = xhr.responseText;
+            document.getElementById("info").innerHTML += "<br>" + response;
+          }
+        };
+        xhr.send();
+      }
+
+      function viewInfo() {
+        var user_id = 1; // Ganti dengan ID pengguna yang sesuai
+        window.location.href = "info.php?user_id=" + user_id;
+      }
+    </script>
+  </body>
+</html>

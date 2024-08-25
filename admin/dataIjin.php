@@ -1,0 +1,274 @@
+<?php
+session_start();
+include('../config.php');
+if (empty($_SESSION['csrf_token'])) {
+    header("Location: ../login.php");
+}
+
+?>
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Data Ijin | Universitas Teknologi Digital Indonesia</title>
+    <link rel="icon" href="../asset/image/logo.png" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+</head>
+
+<body>
+    <div class="min-vh-100 bg-light">
+        <nav class="navbar sticky-top shadow-sm" style="background-color: #fff;">
+            <div class="px-5">
+                <a class="navbar-brand fw-bold" href="#"><img src="../asset/image/utdi.png" alt="" width="10%"></a>
+            </div>
+        </nav>
+        <div class="row gx-0">
+            <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                <?php
+                if (isset($_SESSION['pesan'])) {
+                ?>
+                    <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="toast-header">
+                            <img src="../asset/image/logo.png" class="rounded me-2" alt="..." width="5%">
+                            <strong class="me-auto">File Tugas</strong>
+                            <small>Just now</small>
+                            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                        <div class="toast-body">
+                            <?php echo $_SESSION['pesan']  ?>
+                        </div>
+                    </div>
+                <?php
+                    unset($_SESSION['pesan']);
+                }
+                ?>
+            </div>
+
+            <div class="col-sm-3 mb-3 mb-sm-0">
+                <div class="card border-light shadow-sm ms-5 me-2 my-4 ">
+                    <?php include('../layouts/sidebar.php') ?>
+                </div>
+            </div>
+            <div class="col-sm-9">
+                <div class="d-flex justify-content-between align-items-center">
+                    <p class="fs-3 fw-bold ps-2 pt-4">DATA IJIN</p>
+                    <button type="button" class="btn btn-info btn-sm me-5 d-flex justify-content-between align-items-center" data-bs-toggle="modal" data-bs-target="#exampleModal">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2" />
+                        </svg>
+                        &nbsp;Tambah Ijin
+                    </button>
+
+                </div>
+
+                <div class="card border-light me-5 ms-2">
+                    <div class="card-body bs-bg-opacity-0 p-0">
+                        <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="get" class="ps-5 pt-3 pb-3">
+                            <div class="row">
+                                <div class="col-10">
+                                    <input type="text" class="form-control form-control-sm" placeholder="Cari Surat Ijin" name="cari" id="cari">
+                                </div>
+                                <div class="col-auto">
+                                    <input type="submit" value="Cari Surat Ijin" class="btn btn-primary btn-sm">
+                                </div>
+                            </div>
+                        </form>
+                        <table class="table">
+                            <thead>
+                                <tr class="table-info m-2">
+                                    <td class="fw-medium align-middle">
+                                        <p class="pt-3  ps-3">No</p>
+                                    </td>
+                                    <td class="fw-medium align-middle">
+                                        <p class="pt-3 ">Tanggal</p>
+                                    </td>
+                                    <td class="fw-medium align-middle">
+                                        <p class="pt-3 ">Nama</p>
+                                    </td>
+                                    <td class="fw-medium align-middle">
+                                        <p class="pt-3 ">NIS</p>
+                                    </td>
+                                    <td class="fw-medium align-middle">
+                                        <p class="pt-3 ">Jurusan</p>
+                                    </td>
+                                    <td class="fw-medium align-middle">
+                                        <p class="pt-3 ">Alasan Ijin</p>
+                                    </td>
+                                </tr>
+                            </thead>
+                            <tbody class="table-group-divider">
+                                <?php
+                                $batas = 5;
+                                $halaman = isset($_GET['halaman']) ? (int)$_GET['halaman'] : 1;
+                                $halaman_awal = ($halaman > 1) ? ($halaman * $batas) - $batas : 0;
+
+                                $previous = $halaman - 1;
+                                $next = $halaman + 1;
+                                if (isset($_GET['cari'])) {
+                                    $cari = $_GET['cari'];
+                                    $data = mysqli_query($db, "SELECT * FROM tb_ijin INNER JOIN tb_pkl ON tb_ijin.NIS = tb_siswa.NIS WHERE tb_siswa.nama LIKE '%$cari%'");
+                                    $jumlah_data = mysqli_num_rows($data);
+                                    $total_halaman = ceil($jumlah_data / $batas);
+                                    $data_pegawai = mysqli_query($db, "SELECT * FROM tb_ijin INNER JOIN tb_siswa ON tb_ijin.NIS = tb_siswa.NIS WHERE tb_siswa.nama LIKE '%$cari%' ORDER BY tb_ijin.id DESC limit $halaman_awal, $batas ");
+                                    $nomor = $halaman_awal + 1;
+                                } else {
+                                    $data = mysqli_query($db, "select * from tb_ijin");
+                                    $jumlah_data = mysqli_num_rows($data);
+                                    $total_halaman = ceil($jumlah_data / $batas);
+                                    $data_pegawai = mysqli_query($db, "SELECT * FROM tb_ijin INNER JOIN tb_siswa ON tb_ijin.NIS = tb_siswa.NIS ORDER BY tb_ijin.id DESC limit $halaman_awal, $batas ");
+                                    $nomor = $halaman_awal + 1;
+                                }
+                                while ($d = mysqli_fetch_array($data_pegawai)) {
+                                ?>
+                                    <tr class="m-5">
+                                        <th class="align-middle" scope="row">
+                                            <p class="pt-3 ps-3"><?php echo $nomor++ ?></p>
+                                        </th>
+                                        <td class="align-middle">
+                                        <p class="pt-3"><?php $tanggal = new DateTime($d['tanggal']); echo $tanggal->format('Y-m-d')?></p>
+                                        </td>
+                                        <td class="align-middle">
+                                            <p class="pt-3"><?php echo $d['nama'] ?></p>
+                                        </td>
+                                        <td class="align-middle">
+                                            <p class="pt-3"><?php echo $d['NIS'] ?></p>
+                                        </td>
+                                        <td class="align-middle">
+                                            <p class="pt-3"><?php echo $d['jurusan'] ?></p>
+                                        </td>
+                                        <td class="align-middle">
+                                            <p class="pt-3"><?php echo $d['alasan'] ?></p>
+                                        </td>
+                                    </tr>
+                                <?php } ?>
+                            </tbody>
+                        </table>
+
+                        <?php
+                        if ($total_halaman > 1) {
+                        ?>
+                            <nav aria-label="Page navigation example">
+                                <ul class="pagination justify-content-end pe-3">
+                                    <li class="page-item">
+                                        <a class="page-link" <?php if ($halaman >= 1) {
+                                                                    echo "href='?halaman=$previous'";
+                                                                } ?>>Previous</a>
+                                    </li>
+                                    <?php
+                                    for ($x = 1; $x <= $total_halaman; $x++) {
+                                    ?>
+                                        <li class="page-item"><a class="page-link" href="?halaman=<?php echo $x ?>"><?php echo $x; ?></a></li>
+                                    <?php
+                                    }
+                                    ?>
+                                    <li class="page-item">
+                                        <a class="page-link" <?php if ($halaman <= $total_halaman) {
+                                                                    echo "href='?halaman=$next'";
+                                                                } ?>>Next</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        <?php } ?>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel">FORM IJIN</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="action/cariUser.php" method="post" id="form">
+                    <div class="modal-body ps-5 pe-5">
+                        <div class="mb-3">
+                            <label for="message-text" class="col-form-label">NIS</label>
+                            <input type="text" class="form-control" id="nis" name="nis" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="col-form-label">NAMA</label>
+                            <input type="text" class="form-control" id="nama" name="nama" disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label class="col-form-label">ASAL SEKOLAH</label>
+                            <input type="text" class="form-control" id="sekolah" name="sekolah" disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label class="col-form-label">JURUSAN</label>
+                            <input type="text" class="form-control" id="jurusan" name="jurusan" disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label class="col-form-label">TANGGAL</label>
+                            <input type="date" class="form-control" name="tanggal" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="col-form-label">ALASAN IJIN</label>
+                            <textarea name="alasan" class="form-control" required></textarea>
+                        </div>
+                        <div id="error-message" class="text-danger" style="display: none;"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary" name="submit">SUBMIT</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/5.3.0/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script>
+        $(document).ready(function() {
+            var toastTrigger = $('#liveToast');
+            var toast = new bootstrap.Toast(toastTrigger);
+
+            // Show the toast if it exists
+            if (toastTrigger.length) {
+                toast.show();
+            }
+        });
+    </script>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $("#nis").on("keypress", function(event) {
+                // Cek apakah tombol yang ditekan adalah Enter
+                if (event.which === 13) {
+                    event.preventDefault(); // Mencegah form submit
+                    var inputId = $(this).val();
+
+                    if (inputId) {
+                        $.ajax({
+                            url: "action/cariUser.php",
+                            method: "GET",
+                            data: {
+                                id: inputId
+                            },
+                            dataType: "json",
+                            success: function(data) {
+                                $("#nama").val(data.nama); // Set nama ke input
+                                $("#sekolah").val(data.asal_sekolah); // Set nama ke input
+                                $("#jurusan").val(data.jurusan); // Set nama ke input
+                            },
+                            error: function() {
+                                $("#nama").val(""); // Kosongkan jika ada kesalahan
+                            }
+                        });
+                    } else {
+                        $("#name").val(""); // Kosongkan jika input kosong
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
